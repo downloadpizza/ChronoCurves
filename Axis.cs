@@ -1,0 +1,156 @@
+using System.Diagnostics;
+using System.Globalization;
+using System.Security.Cryptography.X509Certificates;
+using SFML.Window;
+using Tomlet.Models;
+
+namespace ChronoCurves {
+    public readonly struct OpenClosedRange {
+        public readonly bool StartInclusive;
+        public readonly double Start;
+        public readonly bool EndInclusive;
+        public readonly double End;
+
+        public bool Contains(double v) => (StartInclusive ? v >= Start : v > Start) && (EndInclusive ? v <= End : v < End);
+        public bool Smaller(double v) => !(StartInclusive ? v >= Start : v > Start);
+        public bool Larger(double v) => !(EndInclusive ? v <= End : v < End);
+        
+
+        public OpenClosedRange(bool StartInclusive, double Start, bool EndInclusive, double End) {
+            if(!(StartInclusive && EndInclusive) && Start == End) throw new ArgumentException("Only Closed-Closed ranges may have the same start and end value");
+            if(Start > End) throw new ArgumentException("The start of a range has to be smaller than the end");
+
+            this.Start = Start;
+            this.StartInclusive = StartInclusive;
+            this.End = End;
+            this.EndInclusive = EndInclusive;
+        }
+
+        public static OpenClosedRange Parse(string txt) { // e.g. [-0.2, 0.7)
+            var startInclusive = txt[0] switch
+            {
+                '(' => true,
+                '[' => false,
+                _ => throw new ArgumentException("Range must start with ( or ["),
+            };
+            var endInclusive = txt[^1] switch
+            {
+                ')' => true,
+                ']' => false,
+                _ => throw new ArgumentException("Range must end with ) or ]"),
+            };
+
+            var numbers = txt[1..^1].Split(",", StringSplitOptions.TrimEntries);
+            if(numbers.Length != 2) throw new ArgumentException("Range must include exactly two numbers, did you accidentally use , as a comma?");
+            
+            var start = double.Parse(numbers[0], CultureInfo.InvariantCulture);
+            var end = double.Parse(numbers[1], CultureInfo.InvariantCulture);
+            
+            if(!(startInclusive && endInclusive) && start == end) throw new ArgumentException("Only a closed-closed (...) range may have the same start and end");
+
+            if(start > end) throw new ArgumentException("Start must be larger than end");
+
+            return new OpenClosedRange(startInclusive, start, endInclusive, end);
+        }
+
+        override public string ToString() => $"{(StartInclusive ? "(" : "[") + Start}, {End}{(EndInclusive ? ")" : "]")}";
+    }
+
+    public class SnapRegion
+    {
+        public readonly OpenClosedRange OCRange;
+        public readonly double MovePositive;
+        public readonly double MoveNeutral;
+        public readonly double MoveNegative;
+
+        public SnapRegion(
+            OpenClosedRange OpenClosedRange,
+            double MovePositive,
+            double MoveNeutral,
+            double MoveNegative
+        )
+        {
+            this.OCRange = OpenClosedRange;
+            this.MovePositive = MovePositive / 1e6;
+            this.MoveNeutral = MoveNeutral / 1e6;
+            this.MoveNegative = MoveNegative / 1e6;
+        }
+    }
+
+    public class KBAxis
+    {
+        public readonly HashSet<HashSet<Keyboard.Key>> Negative;
+        public readonly HashSet<HashSet<Keyboard.Key>> Positive;
+        public readonly SnapRegion[] SnapRegions;
+        private int _currentRegionIndex = 0;
+        public double Value = 0.0;
+
+        public void Apply(Direction dir, double time) // time = second/1e6
+        {
+            var currentRegion = SnapRegions[_currentRegionIndex];
+
+            var move = dir switch
+            {
+                Direction.Positive => currentRegion.MovePositive,
+                Direction.Neutral => currentRegion.MoveNeutral,
+                Direction.Negative => currentRegion.MoveNegative,
+                _ => throw new NotImplementedException()
+            };
+
+            var newValue = Value + move * time;
+            Value = Math.Clamp(newValue, currentRegion.OCRange.Start, currentRegion.OCRange.End);
+
+            // Console.WriteLine(Value);
+
+            if (currentRegion.OCRange.Smaller(newValue) && _currentRegionIndex > 0)
+            {
+                _currentRegionIndex -= 1;
+            }
+            else if (currentRegion.OCRange.Larger(newValue) && _currentRegionIndex < SnapRegions.Length - 1)
+            {
+                _currentRegionIndex += 1;
+            }
+        }
+
+
+        public KBAxis(
+            HashSet<HashSet<Keyboard.Key>> Negative,
+            HashSet<HashSet<Keyboard.Key>> Positive,
+            SnapRegion[] SnapRegions)
+        {
+            if (SnapRegions[0].OCRange.Start != -1.0 && SnapRegions[0].OCRange.StartInclusive)
+            {
+                throw new ArgumentException($"First interval needs to be (-1.0, ?? was {SnapRegions[0].OCRange}");
+            }
+
+            if (SnapRegions[^1].OCRange.End != 1.0 && SnapRegions[^1].OCRange.EndInclusive)
+            {
+                throw new ArgumentException($"Last interval needs to be ??, 1.0)");
+            }
+
+            for (int i = 1; i < SnapRegions.Length; i++)
+            {
+                if (SnapRegions[i - 1].OCRange.End != SnapRegions[i].OCRange.Start)
+                {
+                    throw new ArgumentException("Intervals have to start with the previous end value");
+                }
+
+                if (SnapRegions[i - 1].OCRange.EndInclusive == SnapRegions[i].OCRange.StartInclusive)
+                {
+                    throw new ArgumentException("Adjacent edges of intervals have to be one open one closed");
+                }
+
+                
+
+                if (SnapRegions[i].OCRange.Contains(Value))
+                {
+                    _currentRegionIndex = i;
+                }
+            }
+
+            this.Positive = Positive;
+            this.Negative = Negative;
+            this.SnapRegions = SnapRegions;
+        }
+    }
+}

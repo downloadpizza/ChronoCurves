@@ -1,0 +1,76 @@
+# refer to https://www.sfml-dev.org/documentation/2.6.1/classsf_1_1Keyboard.php#acb4cacd7cc5802dec45724cf3314a142 for key names
+[keys]
+ignore = ["LAlt","RAlt","LControl","RControl","LShift","RShift","LSystem","RSystem"] # if any is pressed, all inputs will read neutral
+recenter = ["RShift+Period"] # for key combos seperate with a +
+toggle = ["RShift+Hyphen"]
+
+[visualization]
+
+[visualization.window]
+size =     {width = 200, height = 200} # pixels
+position = {x = 0.0, y = 0.5} # fractions of screen width and height
+anchor =   {x = 0.0, y = 0.5} # basically where on the "window" the position is set. 0 0 means top left corner, this 0, 0.5 means that the left center of the window is put at the given position
+background_color = {r=0, g=0, b=0, alpha=180} # all 0-255. black if left out, alpha is transparency where 0 is transparent and 255 is fully opaque
+
+[visualization.sections.pitch_roll.axis]
+x = "roll" # references axis.roll
+y = "pitch" # references axis.pitch, you can leave out either for a vertical or horizontal only section (with only one bar, not a cross)
+
+[visualization.sections.pitch_roll.layout]
+position = {x = 0.5, y = 0.5} # fractions of window width and height, will become a pain for non-square windows but no idea what else to do
+size = {width = 0.95, height = 0.95} # same as above, 95% as wide and large as the main window
+anchor = {x = 0.5, y = 0.5} # anchored in the center because then I dont need to calculate where its centered
+# background_color = {r=0, g=120, b=0, alpha=180} # you could do a background per section, leaving it empty lets the main background through
+
+[visualization.sections.pitch_roll.bars]
+width = 3 # width of each bar
+color = {r=22,  g=145, b=0, alpha=255} # bar/cross color
+
+[visualization.sections.pitch_roll.ball]
+size = 10 # sidelength of the square
+color = {r=255, g=0, b=0, alpha=255} # color of the square
+
+[axis.pitch]
+positive = ["W"] # same keycombo lists, idk why you would tho
+negative = ["S"]
+output = "Y" # the vJoy axis this axis is set to, the following axis are legal: X, Y, Z, RX, RY, RZ, SL0, SL1, WHL, POV, use brain to decide which to use
+
+# axis stuff: 
+# pitch is an arbitary name, you can name it whatever but remember to keep visualization.sections.[section name].axis up to date if you change it
+# intervals have to cover (-1.0, 1.0) with no gaps. see https://en.wikipedia.org/wiki/Interval_(mathematics) for notation
+# ( is inclusive and [ is exclusive
+# each region has three deltas. 
+# one that is added when the negative key (in this case S) is held
+# one for if no or both keys are held
+# and one if the positive key is held
+# the unit is "value per second" and a full axis goes from -1.0 to 1.0
+# so at 0.8 value per second it takes 1/0.8 = 1.25 seconds to max out an axis into one direction from 0
+
+# In a single tick you can only jump to the edge of a region. So even though the lowestmost region has +9999 on neutral, releasing the keys will only snap you to -0.7
+# and stay there since the neutral in (-0.7, -0.1] is 0 (so it doesnt move if no keys are pressed)
+
+# the closed-closed interval at 0.0 is so the re-center regions from -0.1 to 0.1 trap in a neutral position with no extra inputs
+
+[axis.pitch.regions]
+"(-1.0, -0.7]" = {negative=-0.8,  neutral=+9999, positive=+9999}
+"(-0.7, -0.1]" = {negative=-0.8,  neutral=+0,    positive=+0.8}
+"(-0.1, +0.0]" = {negative=-0.8,  neutral=+0.8,  positive=+0.8}
+"(+0.0, +0.0)" = {negative=-0.8,  neutral=0,  positive=+0.8}
+"[+0.0, +0.1]" = {negative=-0.8,  neutral=-0.8,  positive=+0.8}
+"(+0.1, +0.7]" = {negative=-0.8,  neutral=+0,    positive=+0.8}
+"(+0.7, +1.0)" = {negative=-9999, neutral=-9999, positive=+0.8}
+
+# a way smaller definition. basically ramps up over 1/1.7 seconds (thats 0.6 seconds just abouts, so from 0 it takes 0.6 seconds of holding
+# a direction to get to the maximum
+# instantly snaps to 0 on release to avoid rolling too much, feel free to change
+[axis.roll]
+positive = ["D"]
+negative = ["A"]
+output = "X"
+
+[axis.roll.regions]
+"(-1.0, 0.0]" = {negative=-1.7,  neutral=+9999, positive=+9999}
+"(0.0, 0.0)"  = {negative=-1.7,  neutral=0,     positive=+1.7}
+"[0.0, 1.0)"  = {negative=-9999, neutral=-9999, positive=+1.7}
+
+# rotorcrafters may want to add a yaw section here, this is left as an exercise to the reader
