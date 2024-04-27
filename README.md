@@ -25,7 +25,7 @@ thanks to Renblo from the Nuclear Option Discord for helping me test the pre-pre
 
 thanks to the SFML Discord for helping me with Keyboard stuff that I did ended up not needing in the end (this is the previously mentioned key supression stuff) (4 hours that I will never get back)
 
-# I need help doing a decent config
+# "I need help doing a decent config"
 
 I honestly don't have time to help with configs. The default config has a lot of comments, if I forgot something you may have to check out the mess of code.
 I will not be providing support (you can make PRs to clear things up though)
