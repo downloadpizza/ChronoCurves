@@ -17,7 +17,7 @@ namespace ChronoCurves {
         
 
         public OpenClosedRange(bool StartInclusive, double Start, bool EndInclusive, double End) {
-            if(!(StartInclusive && EndInclusive) && Start == End) throw new ArgumentException("Only Closed-Closed ranges may have the same start and end value");
+            if(!(StartInclusive && EndInclusive) && Start.DoubleEquals(End)) throw new ArgumentException("Only Closed-Closed ranges may have the same start and end value");
             if(Start > End) throw new ArgumentException("The start of a range has to be smaller than the end");
 
             this.Start = Start;
@@ -46,7 +46,7 @@ namespace ChronoCurves {
             var start = double.Parse(numbers[0], CultureInfo.InvariantCulture);
             var end = double.Parse(numbers[1], CultureInfo.InvariantCulture);
             
-            if(!(startInclusive && endInclusive) && start == end) throw new ArgumentException("Only a closed-closed (...) range may have the same start and end");
+            if(!(startInclusive && endInclusive) && start.DoubleEquals(end)) throw new ArgumentException("Only a closed-closed (...) range may have the same start and end");
 
             if(start > end) throw new ArgumentException("Start must be larger than end");
 
@@ -118,19 +118,19 @@ namespace ChronoCurves {
             HashSet<HashSet<Keyboard.Key>> Positive,
             SnapRegion[] SnapRegions)
         {
-            if (SnapRegions[0].OCRange.Start != -1.0 && SnapRegions[0].OCRange.StartInclusive)
+            if (!SnapRegions[0].OCRange.Start.DoubleEquals(-1.0) || !SnapRegions[0].OCRange.StartInclusive)
             {
                 throw new ArgumentException($"First interval needs to be (-1.0, ?? was {SnapRegions[0].OCRange}");
             }
 
-            if (SnapRegions[^1].OCRange.End != 1.0 && SnapRegions[^1].OCRange.EndInclusive)
+            if (!SnapRegions[^1].OCRange.End.DoubleEquals(+1.0) || !SnapRegions[^1].OCRange.EndInclusive)
             {
-                throw new ArgumentException($"Last interval needs to be ??, 1.0)");
+                throw new ArgumentException($"Last interval needs to be ??, 1.0) was {SnapRegions[^1].OCRange}");
             }
 
             for (int i = 1; i < SnapRegions.Length; i++)
             {
-                if (SnapRegions[i - 1].OCRange.End != SnapRegions[i].OCRange.Start)
+                if (!SnapRegions[i - 1].OCRange.End.DoubleEquals(SnapRegions[i].OCRange.Start))
                 {
                     throw new ArgumentException("Intervals have to start with the previous end value");
                 }
@@ -140,7 +140,6 @@ namespace ChronoCurves {
                     throw new ArgumentException("Adjacent edges of intervals have to be one open one closed");
                 }
 
-                
 
                 if (SnapRegions[i].OCRange.Contains(Value))
                 {
@@ -152,5 +151,9 @@ namespace ChronoCurves {
             this.Negative = Negative;
             this.SnapRegions = SnapRegions;
         }
+    }
+
+    public static class DoubleUtility {
+        public static bool DoubleEquals(this double a, double b) => Math.Abs(a - b) < 0.000000001;
     }
 }
