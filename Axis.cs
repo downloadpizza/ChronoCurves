@@ -24,7 +24,7 @@ namespace ChronoCurves {
             this.EndInclusive = EndInclusive;
         }
 
-        public static OpenClosedRange Parse(string txt) { // e.g. [-0.2, 0.7)
+        public static OpenClosedRange Parse(string txt) {
             var startInclusive = txt[0] switch
             {
                 '[' => true,
@@ -85,11 +85,17 @@ namespace ChronoCurves {
 
     public class KBAxis
     {
-        public readonly HashSet<HashSet<Keyboard.Key>> Negative;
-        public readonly HashSet<HashSet<Keyboard.Key>> Positive;
+        public readonly HashSet<HashSet<Keyboard.Key>> NegativeKB;
+        public readonly HashSet<HashSet<Keyboard.Key>> PositiveKB;
+        public readonly double DefaultValue;
+        public readonly double MinInput;
+        public readonly double MaxInput;
+        public readonly int MinOutput;
+        public readonly int MaxOutput;
         public readonly SnapRegion[] SnapRegions;
         private int _currentRegionIndex = 0;
-        public double Value = 0.0;
+        public double Value;
+        public double FractionValue => (Value - MinInput)/(MaxInput - MinInput);
 
         public void Apply(Direction dir, double time) // time = second/1e6
         {
@@ -106,8 +112,6 @@ namespace ChronoCurves {
             var newValue = Value + move * time;
             Value = Math.Clamp(newValue, currentRegion.OCRange.Start, currentRegion.OCRange.End);
 
-            // Console.WriteLine(Value);
-
             if (currentRegion.OCRange.Smaller(newValue) && _currentRegionIndex > 0)
             {
                 _currentRegionIndex -= 1;
@@ -120,18 +124,23 @@ namespace ChronoCurves {
 
 
         public KBAxis(
-            HashSet<HashSet<Keyboard.Key>> Negative,
-            HashSet<HashSet<Keyboard.Key>> Positive,
+            HashSet<HashSet<Keyboard.Key>> NegativeKB,
+            HashSet<HashSet<Keyboard.Key>> PositiveKB,
+            double DefaultValue,
+            double MinInput,
+            double MaxInput,
+            int MinOutput,
+            int MaxOutput,
             SnapRegion[] SnapRegions)
         {
-            if (!SnapRegions[0].OCRange.Start.DoubleEquals(-1.0) || !SnapRegions[0].OCRange.StartInclusive)
+            if (!SnapRegions[0].OCRange.Start.DoubleEquals(MinInput) || !SnapRegions[0].OCRange.StartInclusive)
             {
-                throw new ArgumentException($"First interval needs to be (-1.0, ?? was {SnapRegions[0].OCRange}");
+                throw new ArgumentException($"First interval needs to be [{MinInput}, ?? was {SnapRegions[0].OCRange}");
             }
 
-            if (!SnapRegions[^1].OCRange.End.DoubleEquals(+1.0) || !SnapRegions[^1].OCRange.EndInclusive)
+            if (!SnapRegions[^1].OCRange.End.DoubleEquals(MaxInput) || !SnapRegions[^1].OCRange.EndInclusive)
             {
-                throw new ArgumentException($"Last interval needs to be ??, 1.0) was {SnapRegions[^1].OCRange}");
+                throw new ArgumentException($"Last interval needs to be ??, {MaxInput}] was {SnapRegions[^1].OCRange}");
             }
 
             for (int i = 1; i < SnapRegions.Length; i++)
@@ -153,8 +162,16 @@ namespace ChronoCurves {
                 }
             }
 
-            this.Positive = Positive;
-            this.Negative = Negative;
+            if(DefaultValue < MinInput || DefaultValue > MaxInput) throw new ArgumentException($"Default value {DefaultValue} must be between {MinInput} and {MaxInput}");
+
+            this.PositiveKB = PositiveKB;
+            this.NegativeKB = NegativeKB;
+            this.DefaultValue = DefaultValue;
+            this.Value = DefaultValue;
+            this.MinInput = MinInput;
+            this.MaxInput = MaxInput;
+            this.MinOutput = MinOutput;
+            this.MaxOutput = MaxOutput;
             this.SnapRegions = SnapRegions;
         }
     }

@@ -164,7 +164,7 @@ namespace ChronoCurves
                 _window.Draw(staticDrawable);
             }
 
-            foreach(var (name, section) in _config.Visualization.Sections) {
+            foreach(var (_, section) in _config.Visualization.Sections) {
                 var sectionVis = section.Layout;
 
                 var hasXAxis = section.Axis.X is not null;
@@ -173,15 +173,15 @@ namespace ChronoCurves
                 var rectWidth = sectionVis.Size.Width * windowVis.Size.Width;
                 var rectHeight = sectionVis.Size.Height * windowVis.Size.Height;
 
-                var rectXCenter = sectionVis.Position.X * windowVis.Size.Width - sectionVis.Anchor.X * rectWidth + rectWidth/2;
-                var rectYCenter = sectionVis.Position.Y * windowVis.Size.Height - sectionVis.Anchor.Y * rectHeight + rectHeight/2;
+                var rectXLeft = sectionVis.Position.X * windowVis.Size.Width - sectionVis.Anchor.X * rectWidth;
+                var rectYBottom = sectionVis.Position.Y * windowVis.Size.Height - sectionVis.Anchor.Y * rectHeight + rectHeight;
 
-                var ballX = hasXAxis ? _axis[section.Axis.X].Value * (rectWidth/2) : 0;   
-                var ballY = hasYAxis ? _axis[section.Axis.Y].Value * (rectHeight/2) * -1 : 0;   
+                var ballX = hasXAxis ? _axis[section.Axis.X].FractionValue * rectWidth : 0;   
+                var ballY = hasYAxis ? _axis[section.Axis.Y].FractionValue * rectHeight * -1 : 0;   
                 
                 _window.Draw(new RectangleShape(new Vector2f(section.Ball.Width, section.Ball.Width)) {
                     FillColor = section.Ball.Color,
-                    Position = new Vector2f((float)(rectXCenter + ballX - section.Ball.Width/2), (float)(rectYCenter + ballY - section.Ball.Width/2))
+                    Position = new Vector2f((float)(rectXLeft + ballX - section.Ball.Width/2), (float)(rectYBottom + ballY - section.Ball.Width/2))
                 });
             }
 

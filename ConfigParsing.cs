@@ -11,8 +11,13 @@ namespace ChronoCurves
     }
 
     public class AxisConfig {
-        [TomlProperty("positive")] public HashSet<HashSet<Keyboard.Key>> PositiveKC { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
-        [TomlProperty("negative")] public HashSet<HashSet<Keyboard.Key>> NegativeKC { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
+        [TomlProperty("positive")] public HashSet<HashSet<Keyboard.Key>> PositiveKB { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
+        [TomlProperty("negative")] public HashSet<HashSet<Keyboard.Key>> NegativeKB { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
+        [TomlProperty("minimumInput")] public double MinimumInput { get; set;} = -1.0;
+        [TomlProperty("maximumInput")] public double MaximumInput { get; set;} = 1.0;
+        [TomlProperty("defaultValue")]  public double DefaultValue { get; set;} = 0.0;
+        [TomlProperty("minimumOutput")]  public int MinimumOutput { get; set;} = 0;
+        [TomlProperty("maximumOutput")]  public int MaximumOutput { get; set;} = 32768;
         [TomlProperty("output")] public HID_USAGES OutputAxis { get; set;}
         [TomlProperty("regions")] public Dictionary<string, RegionConfig> Regions { get; set;}
     }
@@ -24,9 +29,9 @@ namespace ChronoCurves
     }
 
     public class KeyConfig {
-        [TomlProperty("ignore")] public HashSet<HashSet<Keyboard.Key>> IgnoreKC { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
-        [TomlProperty("recenter")] public HashSet<HashSet<Keyboard.Key>> RecenterKC { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
-        [TomlProperty("toggle")] public HashSet<HashSet<Keyboard.Key>> ToggleKC { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
+        [TomlProperty("ignore")] public HashSet<HashSet<Keyboard.Key>> IgnoreKB { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
+        [TomlProperty("recenter")] public HashSet<HashSet<Keyboard.Key>> RecenterKB { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
+        [TomlProperty("toggle")] public HashSet<HashSet<Keyboard.Key>> ToggleKB { get; set;} = new HashSet<HashSet<Keyboard.Key>>();
     }
 
     public class VisualizationConfig {

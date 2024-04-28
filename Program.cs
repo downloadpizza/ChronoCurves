@@ -44,7 +44,7 @@ namespace ChronoCurves
         private Dictionary<Keyboard.Key, bool> _keysPressed;
         private Config _config;
         private Dictionary<string, KBAxis> _axisDict;
-        private Dictionary<string, OutputAxisInfo> _axisOutputs;
+        private Dictionary<string, HID_USAGES> _outputAxis;
 
         public ChronoCurves()
         {
@@ -53,6 +53,8 @@ namespace ChronoCurves
 
             var configText = File.ReadAllText("config.toml");
             _config = TomletMain.To<Config>(configText);
+
+            _outputAxis = _config.Axis.ToDictionary(kv => kv.Key, kv => kv.Value.OutputAxis);
 
             _axisDict = _config.Axis.ToDictionary(
                 kv => kv.Key,
@@ -66,29 +68,28 @@ namespace ChronoCurves
 
                     Array.Sort(regions, (a, b) => a.OCRange.CompareTo(b.OCRange));
 
-                    return new KBAxis(kv.Value.NegativeKC, kv.Value.PositiveKC, regions);
+                    return new KBAxis(
+                        NegativeKB: kv.Value.NegativeKB, 
+                        PositiveKB: kv.Value.PositiveKB, 
+                        DefaultValue: kv.Value.DefaultValue,
+                        MinInput: kv.Value.MinimumInput,
+                        MaxInput: kv.Value.MaximumInput,
+                        MinOutput: kv.Value.MinimumOutput,
+                        MaxOutput: kv.Value.MaximumOutput,
+                        SnapRegions: regions
+                    );
                 }
             );
-
-            _axisOutputs = _config.Axis.ToDictionary(kv => kv.Key, kv =>
-            {
-                return new OutputAxisInfo
-                {
-                    Axis = kv.Value.OutputAxis,
-                    Center = 16384,
-                    Radius = 16384
-                };
-            });
 
             _window = new OverlayWindow(_config, _axisDict);
 
             joystick.ResetVJD(JOYSTICK_ID);
 
-            var keyCombos = _config.Keys.IgnoreKC
-                .Concat(_config.Keys.RecenterKC)
-                .Concat(_config.Keys.ToggleKC)
-                .Concat(_config.Axis.SelectMany(x => x.Value.NegativeKC))
-                .Concat(_config.Axis.SelectMany(x => x.Value.PositiveKC))
+            var keyCombos = _config.Keys.IgnoreKB
+                .Concat(_config.Keys.RecenterKB)
+                .Concat(_config.Keys.ToggleKB)
+                .Concat(_config.Axis.SelectMany(x => x.Value.NegativeKB))
+                .Concat(_config.Axis.SelectMany(x => x.Value.PositiveKB))
                 .ToHashSet();
 
             _keysPressed = keyCombos.SelectMany(x => x).Distinct().ToDictionary(k => k, k => false);
@@ -105,9 +106,9 @@ namespace ChronoCurves
                 var elapsed = sw.ElapsedTicks * 1e6 / Stopwatch.Frequency;
                 sw.Restart();
 
-                var recenterPressed = IsAnyKeyComboPressed(_config.Keys.RecenterKC);
-                var ignorePressed = IsAnyKeyComboPressed(_config.Keys.IgnoreKC);
-                var togglePressed = IsAnyKeyComboPressed(_config.Keys.ToggleKC);
+                var recenterPressed = IsAnyKeyComboPressed(_config.Keys.RecenterKB);
+                var ignorePressed = IsAnyKeyComboPressed(_config.Keys.IgnoreKB);
+                var togglePressed = IsAnyKeyComboPressed(_config.Keys.ToggleKB);
 
                 if(togglePressed) {
                     if(!toggleHeld) 
@@ -121,15 +122,15 @@ namespace ChronoCurves
                 {
                     if (recenterPressed)
                     {
-                        axis.Value = 0.0;
+                        axis.Value = axis.DefaultValue;
                     }
 
                     var direction = Direction.Neutral;
 
                     if(!ignorePressed && !recenterPressed && active) 
                     {
-                        var negativePressed = IsAnyKeyComboPressed(axis.Negative);
-                        var positivePressed = IsAnyKeyComboPressed(axis.Positive);
+                        var negativePressed = IsAnyKeyComboPressed(axis.NegativeKB);
+                        var positivePressed = IsAnyKeyComboPressed(axis.PositiveKB);
 
                         if (negativePressed) direction = Direction.Negative;
                         if (positivePressed) direction = Direction.Positive;
@@ -138,9 +139,9 @@ namespace ChronoCurves
 
                     axis.Apply(direction, elapsed);
 
-                    var outputInfo = _axisOutputs[name];
-                    joystick.SetAxis((int)(outputInfo.Center + outputInfo.Radius * axis.Value), JOYSTICK_ID, outputInfo.Axis);
-                    // if (name == "pitch") Console.WriteLine((int)(outputInfo.Center + outputInfo.Radius * axis.Value));
+                    var outputDelta = axis.MaxOutput - axis.MinOutput;
+
+                    joystick.SetAxis((int)(axis.MinOutput + outputDelta*axis.FractionValue), JOYSTICK_ID, _outputAxis[name]);
                 }
 
                 _window.Run();
@@ -186,7 +187,7 @@ namespace ChronoCurves
 
         private static void SetupTomletMappers()
         {
-            TomletMain.RegisterMapper<HashSet<HashSet<Keyboard.Key>>>(
+            TomletMain.RegisterMapper(
                 keyCombos => null,
                 tomlValue =>
                 {
@@ -243,12 +244,5 @@ namespace ChronoCurves
 
         private bool IsKeyComboPressed(HashSet<Keyboard.Key> keyCombo) => keyCombo.All(x => _keysPressed[x]);
         private bool IsAnyKeyComboPressed(HashSet<HashSet<Keyboard.Key>> keyCombos) => keyCombos.Any(IsKeyComboPressed);
-    }
-
-    struct OutputAxisInfo
-    {
-        public HID_USAGES Axis;
-        public long Center;
-        public long Radius;
     }
 }

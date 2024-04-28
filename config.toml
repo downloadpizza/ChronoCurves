@@ -34,6 +34,14 @@ color = {r=255, g=0, b=0, alpha=255} # color of the square
 positive = ["W"] # same keycombo lists, idk why you would tho
 negative = ["S"]
 output = "Y" # the vJoy axis this axis is set to, the following axis are legal: X, Y, Z, RX, RY, RZ, SL0, SL1, WHL, POV, use brain to decide which to use
+# ADDITIONAL PROPERTIES::::
+# minimumInput = 0.0 # (default: -1.0) you can change where the input axis starts number wise, this might be useful for brake axis or the likes
+# maximumInput = 1.0 # (default: 1.0) same as the above, can change where the axis ends. minimumInput is always "full down" and maximumInput is always "full up"
+# defaultValue = 0.0 # (default: 0.0) where the axis starts on program start and where it re-centers to on recenter press
+
+# DO NOT USE THE 2 BELOW UNLESS YOU UNDERSTAND! these are values for future-proofing and debugging
+# minimumOutput = 0 # (default: 0) the directinput output value at "full down", you will NEVER have to change this
+# maximumOutput = 32768 # (default: 32768) the directinput output value at "full up", also will never have to change this
 
 # axis stuff: 
 # pitch is an arbitary name, you can name it whatever but remember to keep visualization.sections.[section name].axis up to date if you change it
@@ -72,5 +80,3 @@ output = "X"
 "[-1.0, 0.0)" = {negative=-1.7,  neutral=+9999, positive=+9999}
 "[0.0, 0.0]"  = {negative=-1.7,  neutral=0,     positive=+1.7}
 "(0.0, 1.0]"  = {negative=-9999, neutral=-9999, positive=+1.7}
-
-# rotorcrafters may want to add a yaw section here, this is left as an exercise to the reader
