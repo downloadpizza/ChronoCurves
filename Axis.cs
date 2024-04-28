@@ -1,11 +1,9 @@
-using System.Diagnostics;
+
 using System.Globalization;
-using System.Security.Cryptography.X509Certificates;
 using SFML.Window;
-using Tomlet.Models;
 
 namespace ChronoCurves {
-    public readonly struct OpenClosedRange {
+    public readonly struct OpenClosedRange : IComparable<OpenClosedRange> {
         public readonly bool StartInclusive;
         public readonly double Start;
         public readonly bool EndInclusive;
@@ -29,14 +27,14 @@ namespace ChronoCurves {
         public static OpenClosedRange Parse(string txt) { // e.g. [-0.2, 0.7)
             var startInclusive = txt[0] switch
             {
-                '(' => true,
-                '[' => false,
+                '[' => true,
+                '(' => false,
                 _ => throw new ArgumentException("Range must start with ( or ["),
             };
             var endInclusive = txt[^1] switch
             {
-                ')' => true,
-                ']' => false,
+                ']' => true,
+                ')' => false,
                 _ => throw new ArgumentException("Range must end with ) or ]"),
             };
 
@@ -53,7 +51,15 @@ namespace ChronoCurves {
             return new OpenClosedRange(startInclusive, start, endInclusive, end);
         }
 
-        override public string ToString() => $"{(StartInclusive ? "(" : "[") + Start}, {End}{(EndInclusive ? ")" : "]")}";
+        override public string ToString() => $"{(StartInclusive ? "[" : "(") + Start}, {End}{(EndInclusive ? "]" : ")")}";
+
+        public int CompareTo(OpenClosedRange other)
+        {
+            var dc = this.Start.CompareTo(other.Start);
+            var ic = this.StartInclusive.CompareTo(other.StartInclusive);
+
+            return this.Start.DoubleEquals(other.Start) ? -ic : dc;
+        }
     }
 
     public class SnapRegion
@@ -132,12 +138,12 @@ namespace ChronoCurves {
             {
                 if (!SnapRegions[i - 1].OCRange.End.DoubleEquals(SnapRegions[i].OCRange.Start))
                 {
-                    throw new ArgumentException("Intervals have to start with the previous end value");
+                    throw new ArgumentException($"Intervals have to start with the previous end value, was {SnapRegions[i - 1].OCRange} and {SnapRegions[i].OCRange}");
                 }
 
                 if (SnapRegions[i - 1].OCRange.EndInclusive == SnapRegions[i].OCRange.StartInclusive)
                 {
-                    throw new ArgumentException("Adjacent edges of intervals have to be one open one closed");
+                    throw new ArgumentException($"Adjacent edges of intervals have to be one open one closed, was {SnapRegions[i - 1].OCRange} and {SnapRegions[i].OCRange}");
                 }
 
 

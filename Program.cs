@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using SFML.Graphics;
 using SFML.Window;
@@ -26,6 +27,8 @@ namespace ChronoCurves
     {
         private static void Main()
         {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+            
             new ChronoCurves()
                 .MainLoop();
         }
@@ -61,7 +64,7 @@ namespace ChronoCurves
                         return new SnapRegion(range, kv.Value.Positive, kv.Value.Neutral, kv.Value.Negative);
                     }).ToArray();
 
-                    Array.Sort(regions, (a, b) => b.MoveNegative.CompareTo(a.MoveNegative));
+                    Array.Sort(regions, (a, b) => a.OCRange.CompareTo(b.OCRange));
 
                     return new KBAxis(kv.Value.NegativeKC, kv.Value.PositiveKC, regions);
                 }

@@ -7,12 +7,7 @@ on:
 
 jobs:
   publish-tagged-release:
-    strategy:
-      matrix:
-        configuration: [Debug, Release]
     runs-on: windows-latest
-    env:
-      Solution_Name: chronocurves
     steps:
     - name: Checkout
       uses: actions/checkout@v4
